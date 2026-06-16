@@ -15,9 +15,6 @@ analysis to help users make better decisions.
 - NLP Logic
 - HTML · CSS · JavaScript
 
-## Screenshots
-[Add your screenshots here]
-
 ## Author
 Anmol Mahepia — BCA Graduate, Delhi
 LinkedIn: linkedin.com/in/anmolmahepia
