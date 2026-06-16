@@ -17,4 +17,5 @@ analysis to help users make better decisions.
 
 ## Author
 Anmol Mahepia — BCA Graduate, Delhi
+
 LinkedIn: linkedin.com/in/anmolmahepia
