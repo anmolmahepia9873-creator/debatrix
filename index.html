@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>DecisionAI — Debate Engine</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+  <style>
+    /* ── RESET & BASE ─────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+ 
+    :root {
+      --bg:        #0a0a0f;
+      --surface:   #111118;
+      --card:      #16161f;
+      --border:    #2a2a3a;
+      --accent:    #6c63ff;
+      --accent2:   #ff6b6b;
+      --green:     #00e676;
+      --text:      #e8e8f0;
+      --muted:     #6b6b80;
+      --font-head: 'Bebas Neue', sans-serif;
+      --font-body: 'DM Sans', sans-serif;
+      --font-mono: 'DM Mono', monospace;
+    }
+ 
+    html { scroll-behavior: smooth; }
+ 
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-body);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+ 
+    /* ── BACKGROUND GRID ──────────────────────────── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(var(--border) 1px, transparent 1px),
+        linear-gradient(90deg, var(--border) 1px, transparent 1px);
+      background-size: 60px 60px;
+      opacity: 0.15;
+      pointer-events: none;
+      z-index: 0;
+    }
+ 
+    /* ── LAYOUT ───────────────────────────────────── */
+    .wrapper {
+      position: relative;
+      z-index: 1;
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 48px 24px 80px;
+    }
+ 
+    /* ── HEADER ───────────────────────────────────── */
+    header {
+      text-align: center;
+      margin-bottom: 56px;
+      animation: fadeDown 0.7s ease both;
+    }
+ 
+    .badge {
+      display: inline-block;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: var(--accent);
+      border: 1px solid var(--accent);
+      padding: 4px 14px;
+      border-radius: 2px;
+      margin-bottom: 20px;
+    }
+ 
+    h1 {
+      font-family: var(--font-head);
+      font-size: clamp(52px, 9vw, 96px);
+      letter-spacing: 4px;
+      line-height: 0.95;
+      background: linear-gradient(135deg, #fff 30%, var(--accent) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 16px;
+    }
+ 
+    .subtitle {
+      color: var(--muted);
+      font-size: 15px;
+      font-weight: 300;
+      letter-spacing: 0.3px;
+    }
+ 
+    /* ── INPUT CARD ───────────────────────────────── */
+    .input-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 36px;
+      margin-bottom: 32px;
+      animation: fadeUp 0.7s 0.2s ease both;
+    }
+ 
+    .input-card label {
+      display: block;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 10px;
+    }
+ 
+    .input-card input {
+      width: 100%;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px 18px;
+      color: var(--text);
+      font-family: var(--font-body);
+      font-size: 15px;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      margin-bottom: 24px;
+    }
+ 
+    .input-card input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(108, 99, 255, 0.15);
+    }
+ 
+    .input-card input::placeholder { color: var(--muted); }
+ 
+    .options-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+ 
+    .vs-divider {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-head);
+      font-size: 22px;
+      color: var(--muted);
+      padding-top: 28px;
+    }
+ 
+    .options-row-inner {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      gap: 0;
+      align-items: start;
+    }
+ 
+    /* ── BUTTON ───────────────────────────────────── */
+    .btn {
+      width: 100%;
+      padding: 16px;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-family: var(--font-head);
+      font-size: 20px;
+      letter-spacing: 3px;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.1s, box-shadow 0.2s;
+      margin-top: 8px;
+    }
+ 
+    .btn:hover {
+      background: #7c74ff;
+      box-shadow: 0 0 30px rgba(108, 99, 255, 0.4);
+    }
+ 
+    .btn:active { transform: scale(0.98); }
+ 
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+ 
+    /* ── LOADER ───────────────────────────────────── */
+    .loader {
+      display: none;
+      text-align: center;
+      padding: 48px;
+      animation: fadeUp 0.3s ease both;
+    }
+ 
+    .loader.show { display: block; }
+ 
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 20px;
+    }
+ 
+    .loader p {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      letter-spacing: 2px;
+      color: var(--muted);
+      text-transform: uppercase;
+    }
+ 
+    /* ── RESULTS ──────────────────────────────────── */
+    #results { display: none; animation: fadeUp 0.5s ease both; }
+    #results.show { display: block; }
+ 
+    .section-title {
+      font-family: var(--font-head);
+      font-size: 13px;
+      letter-spacing: 4px;
+      color: var(--muted);
+      text-transform: uppercase;
+      margin-bottom: 16px;
+    }
+ 
+    /* ── DECISION BANNER ──────────────────────────── */
+    .decision-banner {
+      background: linear-gradient(135deg, #1a1a2e, #16213e);
+      border: 1px solid var(--accent);
+      border-radius: 12px;
+      padding: 36px;
+      text-align: center;
+      margin-bottom: 24px;
+      position: relative;
+      overflow: hidden;
+    }
+ 
+    .decision-banner::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse at center, rgba(108,99,255,0.12) 0%, transparent 70%);
+    }
+ 
+    .decision-label {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 3px;
+      color: var(--accent);
+      text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+ 
+    .decision-name {
+      font-family: var(--font-head);
+      font-size: clamp(36px, 6vw, 64px);
+      letter-spacing: 3px;
+      color: var(--green);
+      margin-bottom: 8px;
+    }
+ 
+    .confidence-text {
+      font-family: var(--font-mono);
+      font-size: 13px;
+      color: var(--muted);
+    }
+ 
+    .confidence-text span {
+      color: var(--text);
+      font-weight: 500;
+    }
+ 
+    /* ── SCORE BARS ───────────────────────────────── */
+    .score-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 28px;
+      margin-bottom: 24px;
+    }
+ 
+    .score-row {
+      margin-bottom: 20px;
+    }
+ 
+    .score-row:last-child { margin-bottom: 0; }
+ 
+    .score-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+ 
+    .score-opt-name {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text);
+    }
+ 
+    .score-pct {
+      font-family: var(--font-mono);
+      font-size: 13px;
+      color: var(--muted);
+    }
+ 
+    .bar-track {
+      width: 100%;
+      height: 8px;
+      background: var(--surface);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+ 
+    .bar-fill {
+      height: 100%;
+      border-radius: 4px;
+      width: 0%;
+      transition: width 1.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+ 
+    .bar-fill.opt1 { background: linear-gradient(90deg, var(--accent), #a29bfe); }
+    .bar-fill.opt2 { background: linear-gradient(90deg, var(--accent2), #fd79a8); }
+ 
+    /* ── ARGUMENTS GRID ───────────────────────────── */
+    .args-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+ 
+    .args-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+    }
+ 
+    .args-card-title {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+ 
+    .args-card-title.for   { color: var(--green); }
+    .args-card-title.against { color: var(--accent2); }
+ 
+    .arg-item {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 12px;
+      font-size: 13px;
+      line-height: 1.5;
+      color: #c0c0d0;
+    }
+ 
+    .arg-item:last-child { margin-bottom: 0; }
+ 
+    .arg-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      margin-top: 7px;
+      flex-shrink: 0;
+    }
+ 
+    .arg-dot.for     { background: var(--green); }
+    .arg-dot.against { background: var(--accent2); }
+ 
+    /* ── EXPLANATION ──────────────────────────────── */
+    .explanation-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--accent);
+      border-radius: 12px;
+      padding: 24px 28px;
+      margin-bottom: 24px;
+      font-size: 14px;
+      line-height: 1.7;
+      color: #c0c0d0;
+    }
+ 
+    /* ── DEBATE SECTION ───────────────────────────── */
+    .debate-toggle {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      margin-bottom: 24px;
+    }
+ 
+    .debate-toggle summary {
+      padding: 20px 24px;
+      cursor: pointer;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--muted);
+      list-style: none;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      user-select: none;
+      transition: color 0.2s;
+    }
+ 
+    .debate-toggle summary:hover { color: var(--text); }
+ 
+    .debate-toggle summary::after {
+      content: '▼';
+      font-size: 10px;
+      transition: transform 0.3s;
+    }
+ 
+    .debate-toggle[open] summary::after { transform: rotate(180deg); }
+ 
+    .debate-body {
+      padding: 0 24px 24px;
+      border-top: 1px solid var(--border);
+    }
+ 
+    .debate-line {
+      padding: 10px 0;
+      font-size: 13px;
+      line-height: 1.6;
+      color: #a0a0b8;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+    }
+ 
+    .debate-line:last-child { border-bottom: none; }
+ 
+    /* ── FEATURES ─────────────────────────────────── */
+    .features-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+ 
+    .features-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+    }
+ 
+    .features-card h4 {
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 12px;
+      color: var(--text);
+    }
+ 
+    .tag {
+      display: inline-block;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      padding: 3px 10px;
+      border-radius: 3px;
+      background: rgba(108, 99, 255, 0.12);
+      border: 1px solid rgba(108, 99, 255, 0.25);
+      color: var(--accent);
+      margin: 3px 3px 3px 0;
+      letter-spacing: 0.5px;
+    }
+ 
+    .no-features {
+      font-size: 12px;
+      color: var(--muted);
+      font-style: italic;
+    }
+ 
+    /* ── ERROR ────────────────────────────────────── */
+    .error-box {
+      display: none;
+      background: rgba(255, 107, 107, 0.08);
+      border: 1px solid var(--accent2);
+      border-radius: 8px;
+      padding: 16px 20px;
+      color: var(--accent2);
+      font-size: 13px;
+      margin-bottom: 20px;
+      font-family: var(--font-mono);
+    }
+ 
+    .error-box.show { display: block; }
+ 
+    /* ── ANIMATIONS ───────────────────────────────── */
+    @keyframes fadeDown {
+      from { opacity: 0; transform: translateY(-20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+ 
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+ 
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+ 
+    /* ── RESPONSIVE ───────────────────────────────── */
+    @media (max-width: 600px) {
+      .options-row-inner { grid-template-columns: 1fr; }
+      .vs-divider { display: none; }
+      .args-grid  { grid-template-columns: 1fr; }
+      .features-row { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+<div class="wrapper">
+ 
+  <!-- HEADER -->
+  <header>
+    <div class="badge">AI · NLP · Debate Engine</div>
+    <h1>DECISION<br>AI</h1>
+    <p class="subtitle">Enter a problem. Give two options. Let the debate begin.</p>
+  </header>
+ 
+  <!-- INPUT -->
+  <div class="input-card">
+    <label>Your Problem</label>
+    <input type="text" id="problem" placeholder="e.g. Which programming language should I learn?" />
+ 
+    <div class="options-row-inner">
+      <div>
+        <label>Option 1</label>
+        <input type="text" id="opt1" placeholder="e.g. Python" />
+      </div>
+      <div class="vs-divider">VS</div>
+      <div>
+        <label>Option 2</label>
+        <input type="text" id="opt2" placeholder="e.g. Java" />
+      </div>
+    </div>
+ 
+    <div class="error-box" id="errorBox"></div>
+    <button class="btn" id="analyzeBtn" onclick="analyze()">ANALYZE DECISION</button>
+  </div>
+ 
+  <!-- LOADER -->
+  <div class="loader" id="loader">
+    <div class="spinner"></div>
+    <p>Generating debate arguments...</p>
+  </div>
+ 
+  <!-- RESULTS -->
+  <div id="results">
+ 
+    <!-- FINAL DECISION -->
+    <p class="section-title">Final Decision</p>
+    <div class="decision-banner">
+      <div class="decision-label">Winner</div>
+      <div class="decision-name" id="decisionName">—</div>
+      <div class="confidence-text">Confidence: <span id="confidenceVal">—</span>%</div>
+    </div>
+ 
+    <!-- SCORE BARS -->
+    <p class="section-title">Score Comparison</p>
+    <div class="score-card">
+      <div class="score-row">
+        <div class="score-header">
+          <span class="score-opt-name" id="scoreName1">—</span>
+          <span class="score-pct" id="scorePct1">—%</span>
+        </div>
+        <div class="bar-track"><div class="bar-fill opt1" id="bar1"></div></div>
+      </div>
+      <div class="score-row">
+        <div class="score-header">
+          <span class="score-opt-name" id="scoreName2">—</span>
+          <span class="score-pct" id="scorePct2">—%</span>
+        </div>
+        <div class="bar-track"><div class="bar-fill opt2" id="bar2"></div></div>
+      </div>
+    </div>
+ 
+    <!-- ARGUMENTS -->
+    <p class="section-title">Arguments</p>
+    <div class="args-grid" id="argsGrid"></div>
+ 
+    <!-- EXPLANATION -->
+    <p class="section-title">Reasoning</p>
+    <div class="explanation-card" id="explanationCard">—</div>
+ 
+    <!-- FEATURES -->
+    <p class="section-title">Detected Features</p>
+    <div class="features-row" id="featuresRow"></div>
+ 
+    <!-- DEBATE -->
+    <details class="debate-toggle" id="debateToggle">
+      <summary>View Full Debate Process</summary>
+      <div class="debate-body" id="debateBody"></div>
+    </details>
+ 
+  </div>
+</div>
+ 
+<script>
+  async function analyze() {
+    const problem = document.getElementById('problem').value.trim();
+    const opt1    = document.getElementById('opt1').value.trim();
+    const opt2    = document.getElementById('opt2').value.trim();
+    const errBox  = document.getElementById('errorBox');
+ 
+    errBox.classList.remove('show');
+ 
+    if (!problem || !opt1 || !opt2) {
+      errBox.textContent = 'Please fill in all three fields before analyzing.';
+      errBox.classList.add('show');
+      return;
+    }
+ 
+    // Show loader, hide results
+    document.getElementById('loader').classList.add('show');
+    document.getElementById('results').classList.remove('show');
+    document.getElementById('analyzeBtn').disabled = true;
+ 
+    try {
+      const res  = await fetch('/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ problem, option1: opt1, option2: opt2 })
+      });
+ 
+      if (!res.ok) throw new Error('Server error: ' + res.status);
+ 
+      const data = await res.json();
+      renderResults(data);
+ 
+    } catch (err) {
+      errBox.textContent = 'Error: ' + err.message + '. Make sure the FastAPI server is running.';
+      errBox.classList.add('show');
+    } finally {
+      document.getElementById('loader').classList.remove('show');
+      document.getElementById('analyzeBtn').disabled = false;
+    }
+  }
+ 
+  function renderResults(data) {
+    const o1 = data.option1;
+    const o2 = data.option2;
+ 
+    // Decision
+    document.getElementById('decisionName').textContent  = data.decision === o1.name ? o1.name : data.decision === o2.name ? o2.name : 'DRAW';
+    document.getElementById('confidenceVal').textContent = data.confidence;
+ 
+    // Score bars
+    document.getElementById('scoreName1').textContent = o1.name;
+    document.getElementById('scorePct1').textContent  = o1.percent + '%';
+    document.getElementById('scoreName2').textContent = o2.name;
+    document.getElementById('scorePct2').textContent  = o2.percent + '%';
+ 
+    // Animate bars after short delay
+    setTimeout(() => {
+      document.getElementById('bar1').style.width = o1.percent + '%';
+      document.getElementById('bar2').style.width = o2.percent + '%';
+    }, 100);
+ 
+    // Arguments grid
+    const argsGrid = document.getElementById('argsGrid');
+    argsGrid.innerHTML = `
+      ${makeArgsCard(o1.name, o1.args_for, 'for')}
+      ${makeArgsCard(o1.name, o1.args_against, 'against')}
+      ${makeArgsCard(o2.name, o2.args_for, 'for')}
+      ${makeArgsCard(o2.name, o2.args_against, 'against')}
+    `;
+ 
+    // Explanation
+    document.getElementById('explanationCard').textContent = data.explanation;
+ 
+    // Features
+    const featuresRow = document.getElementById('featuresRow');
+    featuresRow.innerHTML = `
+      ${makeFeaturesCard(o1.name, o1.features)}
+      ${makeFeaturesCard(o2.name, o2.features)}
+    `;
+ 
+    // Debate
+    const debateBody = document.getElementById('debateBody');
+    debateBody.innerHTML = data.debate.map(line =>
+      `<div class="debate-line">${escHtml(line)}</div>`
+    ).join('');
+ 
+    // Show results
+    document.getElementById('results').classList.add('show');
+    document.getElementById('results').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+ 
+  function makeArgsCard(name, args, type) {
+    const icon  = type === 'for' ? '✦ FOR' : '✖ AGAINST';
+    const items = args.map(a => `
+      <div class="arg-item">
+        <div class="arg-dot ${type}"></div>
+        <span>${escHtml(a)}</span>
+      </div>`).join('');
+    return `
+      <div class="args-card">
+        <div class="args-card-title ${type}">${icon} — ${escHtml(name)}</div>
+        ${items}
+      </div>`;
+  }
+ 
+  function makeFeaturesCard(name, features) {
+    const tags = features.length
+      ? features.map(f => `<span class="tag">${escHtml(f)}</span>`).join('')
+      : `<span class="no-features">No specific features detected</span>`;
+    return `
+      <div class="features-card">
+        <h4>${escHtml(name)}</h4>
+        ${tags}
+      </div>`;
+  }
+ 
+  function escHtml(str) {
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+  }
+ 
+  // Allow Enter key to trigger analysis
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Enter') analyze();
+  });
+</script>
+</body>
+</html>
+ 
